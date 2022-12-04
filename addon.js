@@ -16,7 +16,7 @@ const manifest = {
 		"series"
 	],
 	"name": "动漫花园",
-	"description": "来自动漫花园的动画电影和番剧",
+	"description": "来自动漫花园的动画电影和番剧\nhttps://github.com/shanyan-wcx/stremio-addon-dmhy",
 	"idPrefixes": [
 		"tt"
 	]
@@ -103,12 +103,10 @@ async function getName(id) {
 		title = str.substring(a, b)
 		title_ = ''
 	}
-	//title = '"' + title + '"'
 	if (title_ != '') {
-		//title_ = '"' + title_ + '"'
 		title = title + '|' + title_
 	}
-	title = title.replace(/\s*/g,'').replace(/\:/g,'')
+	title = title.replace(/\s*/g, '').replace(/\:/g, '')
 	return title
 }
 
