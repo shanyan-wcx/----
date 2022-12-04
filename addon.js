@@ -104,11 +104,12 @@ async function getName(id) {
 		title = str.substring(a, b)
 		title_ = ''
 	}
-	title = '"' + title + '"'
+	//title = '"' + title + '"'
 	if (title_ != '') {
-		title_ = '"' + title_ + '"'
+		//title_ = '"' + title_ + '"'
 		title = title + '|' + title_
 	}
+	title = title.replace(/\s*/g,'').replace(/\:/g,'')
 	return title
 }
 
