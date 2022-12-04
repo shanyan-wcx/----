@@ -42,9 +42,8 @@ builder.defineStreamHandler(async ({ type, id }) => {
 })
 
 async function format(title, size, link, magnet, streams) {
-	var tempMagnet = magnet
-	var temp = tempMagnet.split('&tr=')
-	var b32 = temp[0].replace(/&dn=/g, '').replace(/magnet:\?xt=urn:btih:/g, '')
+	var temp = magnet.split('&tr=')
+	var b32 = temp[0].replace(/&dn=.*/g, '').replace(/magnet:\?xt=urn:btih:/g, '')
 	var temphash = base32.decode(b32)
 	var infoHash = base16.encode(temphash).toLowerCase()
 	var trackers = []
