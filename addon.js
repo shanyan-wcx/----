@@ -54,7 +54,7 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
 		return Promise.resolve({ streams: streams })
 	} else if (type === "series") {
 		console.log(title + ' 第' + season + '季 第' + episode + '集')
-		await getStreams(type, title, streams, episode)
+		await getStreams(type, title, streams, season, episode)
 		streams = await sortBy(streams)
 		console.log(streams)
 		return Promise.resolve({ streams: streams })
@@ -67,20 +67,26 @@ async function getName(type, id, token) {
 	var res = request('GET', `https://www.myapifilms.com/tmdb/find?id=${id}&token=${token}&externalSource=imdb_id&format=json&language=zh`)
 	res = JSON.parse(res.getBody('utf8'))
 	if (type === 'movie') {
-		var title = res.data.movie_results[0].title.replace(/\:/g, ' ').replace(/\：/g, ' ')
+		var title = res.data.movie_results[0] != undefined ? res.data.movie_results[0].title.replace(/\:/g, ' ').replace(/\：/g, ' ') : ''
 	} else if (type === 'series') {
-		var title = res.data.tv_results[0].name.replace(/\:/g, ' ').replace(/\：/g, ' ')
+		var title = res.data.tv_results[0] != undefined ? res.data.tv_results[0].name.replace(/\:/g, ' ').replace(/\：/g, ' ') : ''
 	} else {
 		var title = ''
 	}
 	return title
 }
 
-async function getStreams(type, title, streams, episode = -1) {
+async function getStreams(type, title, streams, season = -1, episode = -1) {
 	if (type === 'movie') {
 		var sort_id = 2
 	} else if (type === 'series') {
 		var sort_id = 31
+		var title_ = title
+		if (season != 1) {
+			var chi_numb = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+			title += ` S${season}|S0${season}|第${season}季|第${chi_numb[season]}季`
+			console.log(title)
+		}
 	}
 	var res = request('POST', `https://share.dmhy.org/topics/list?keyword=${encodeURIComponent(title)}&sort_id=${sort_id}`)
 	var $ = cheerio.load(res.getBody('utf8'))
@@ -91,7 +97,8 @@ async function getStreams(type, title, streams, episode = -1) {
 		var magnet = $(this).children("td").children(".download-arrow").attr('href')
 		var size = $(this).children("td").eq(4).text()
 		var link = $(this).children(".title").children("a").attr('href')
-		if(type==='movie'||((title.indexOf('酷漫404')!=-1||title.indexOf('诸神字幕组')!=-1||title.indexOf('GM-Team')!=-1||title.indexOf('SweetSub')!=-1||title.indexOf('轻之国度')!=-1||title.indexOf('云光字幕组')!=-1||title.indexOf('豌豆字幕组')!=-1||title.indexOf('DIGI-STUDIO')!=-1||title.indexOf('风之圣殿')!=-1||title.indexOf('华盟字幕社')!=-1||title.indexOf('波洛咖啡厅')!=-1||title.indexOf('PCSUB')!=-1||title.indexOf('Dymy')!=-1||title.indexOf('DHR')!=-1||title.indexOf('离谱Sub')!=-1||title.indexOf('爱咕字幕组')!=-1||title.indexOf('动漫国字幕组')!=-1||title.indexOf('幻樱字幕组')!=-1||title.indexOf('LoliHouse')!=-1||title.indexOf('喵萌')!=-1||title.indexOf('桜都字幕組')!=-1||title.indexOf('极影字幕社')!=-1)&&title.indexOf('+')==-1&&title.indexOf('季合集')==-1)){
+		var re = new RegExp(`${title_}[ ]*0*([2-9]|0)`)
+		if (title.match(title_) != null && ((type === 'movie' || ((title.indexOf('酷漫404') != -1 || title.indexOf('诸神字幕组') != -1 || title.indexOf('GM-Team') != -1 || title.indexOf('SweetSub') != -1 || title.indexOf('轻之国度') != -1 || title.indexOf('云光字幕组') != -1 || title.indexOf('豌豆字幕组') != -1 || title.indexOf('DIGI-STUDIO') != -1 || title.indexOf('风之圣殿') != -1 || title.indexOf('华盟字幕社') != -1 || title.indexOf('波洛咖啡厅') != -1 || title.indexOf('PCSUB') != -1 || title.indexOf('Dymy') != -1 || title.indexOf('DHR') != -1 || title.indexOf('离谱Sub') != -1 || title.indexOf('爱咕字幕组') != -1 || title.indexOf('动漫国字幕组') != -1 || title.indexOf('幻樱字幕组') != -1 || title.indexOf('LoliHouse') != -1 || title.indexOf('喵萌') != -1 || title.indexOf('桜都字幕組') != -1 || title.indexOf('极影字幕社') != -1) && title.indexOf('VCB-S') == -1 && title.indexOf('+') == -1 && title.indexOf('季合集') == -1)) && (season != 1 || (title.match(/S[0-9]/) === null && title.match(/S[0-9][0-9]/) === null && title.match(/第.*季/) === null && title.match(re) === null && title.match(/剧场版/) === null)))) {
 			await format(title, size, link, magnet, streams, episode)
 		}
 	})
@@ -133,14 +140,13 @@ async function format(title, size, link, magnet, streams, episode = -1) {
 		resolution += ' HDR'
 		sort_id -= 0.5
 	}
-	resolution = resolution.replace(/p/g, 'P')
 	var byte = await sizeToByte(size)
 	var stream = {
 		infoHash: infoHash,
 		fileIdx: episode === -1 ? null : episode - 1,
 		//trackers: trackers,
-		description: title + '\n💾 ' + size,
-		name: `🌸 DMHY ${resolution}`,
+		description: '🌸'+title + '\n💿' + size,
+		name: resolution,
 		sort_id: sort_id,
 		size: size,
 		byte: byte,
