@@ -37,7 +37,7 @@ const builder = new addonBuilder(manifest)
 builder.defineStreamHandler(async ({ type, id, config }) => {
 	console.log("request for streams: " + type + " " + id)
 	var streams = []
-	var token = '7D638CAE-21C9-4D6E-ACA4-EA4A4E1DE9BF'//config.token
+	var token = config.token
 	var temp = id.split(':')
 	id = temp[0]
 	var season = temp[1]
