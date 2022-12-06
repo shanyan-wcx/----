@@ -151,7 +151,7 @@ async function format(title, size, link, magnet, streams, episode = -1) {
 		size: size,
 		byte: byte,
 		behaviorHints: {
-			bingeGroup: 'dmhy-' + resolution + '-' + size
+			bingeGroup: 'dmhy-' + resolution.replace(/ /g,'-') + '-' + size
 		}
 	}
 	streams.push(stream)
