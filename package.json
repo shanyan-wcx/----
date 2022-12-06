@@ -8,8 +8,7 @@
 	"dependencies": {
 		"@scure/base": "^1.1.1",
 		"cheerio": "^1.0.0-rc.12",
-		"stremio-addon-sdk": "1.1.x",
-		"sync-request": "^6.1.0",
-		"url-encode-decode": "^1.0.0"
+		"stremio-addon-sdk": "^1.6.10",
+		"sync-request": "^6.1.0"
 	}
 }

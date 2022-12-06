@@ -1,6 +1,5 @@
 const cheerio = require('cheerio')
 const request = require('sync-request')
-const { encode } = require('url-encode-decode')
 const { base16, base32 } = require('@scure/base')
 const { addonBuilder } = require("stremio-addon-sdk")
 
@@ -16,32 +15,89 @@ const manifest = {
 		"series"
 	],
 	"name": "动漫花园",
-	"description": "来自动漫花园的动画电影和番剧\nhttps://github.com/shanyan-wcx/stremio-addon-dmhy",
+	"description": "来自动漫花园的动画电影和番剧",
 	"idPrefixes": [
 		"tt"
+	],
+	"behaviorHints": {
+		"configurable": true,
+		"configurationRequired": true
+	},
+	"config": [
+		{
+			"key": "token",
+			"type": "text",
+			"title": '请输入你的Token：(若没有Token,请先到https://www.myapifilms.com注册一个)',
+			"required": true
+		}
 	]
 }
 const builder = new addonBuilder(manifest)
 
-builder.defineStreamHandler(async ({ type, id }) => {
+builder.defineStreamHandler(async ({ type, id, config }) => {
 	console.log("request for streams: " + type + " " + id)
+	var streams = []
+	var token = '7D638CAE-21C9-4D6E-ACA4-EA4A4E1DE9BF'//config.token
+	var temp = id.split(':')
+	id = temp[0]
+	var season = temp[1]
+	var episode = temp[2]
+	var title = await getName(type, id, token)
+	if (title === '') {
+		return Promise.resolve({ streams: [] })
+	}
 	if (type === "movie") {
-		var streams = []
-		var title = await getName(id)
 		console.log(title)
-		title = encode(title)
-		await getStreams(title, streams)
+		await getStreams(type, title, streams)
 		streams = await sortBy(streams)
 		console.log(streams)
 		return Promise.resolve({ streams: streams })
 	} else if (type === "series") {
-		return Promise.resolve({ streams: [] })
+		console.log(title + ' 第' + season + '季 第' + episode + '集')
+		await getStreams(type, title, streams, episode)
+		streams = await sortBy(streams)
+		console.log(streams)
+		return Promise.resolve({ streams: streams })
 	} else {
 		return Promise.resolve({ streams: [] })
 	}
 })
 
-async function format(title, size, link, magnet, streams) {
+async function getName(type, id, token) {
+	var res = request('GET', `https://www.myapifilms.com/tmdb/find?id=${id}&token=${token}&externalSource=imdb_id&format=json&language=zh`)
+	res = JSON.parse(res.getBody('utf8'))
+	if (type === 'movie') {
+		var title = res.data.movie_results[0].title.replace(/\:/g, ' ').replace(/\：/g, ' ')
+	} else if (type === 'series') {
+		var title = res.data.tv_results[0].name.replace(/\:/g, ' ').replace(/\：/g, ' ')
+	} else {
+		var title = ''
+	}
+	return title
+}
+
+async function getStreams(type, title, streams, episode = -1) {
+	if (type === 'movie') {
+		var sort_id = 2
+	} else if (type === 'series') {
+		var sort_id = 31
+	}
+	var res = request('POST', `https://share.dmhy.org/topics/list?keyword=${encodeURIComponent(title)}&sort_id=${sort_id}`)
+	var $ = cheerio.load(res.getBody('utf8'))
+	var items = $("tbody tr")
+	items.each(async function (idx) {
+		var str = $(this).children(".title").children("a").text()
+		var title = str.replace(/\n/g, '').replace(/\t/g, '')
+		var magnet = $(this).children("td").children(".download-arrow").attr('href')
+		var size = $(this).children("td").eq(4).text()
+		var link = $(this).children(".title").children("a").attr('href')
+		if(type==='movie'||((title.indexOf('酷漫404')!=-1||title.indexOf('诸神字幕组')!=-1||title.indexOf('GM-Team')!=-1||title.indexOf('SweetSub')!=-1||title.indexOf('轻之国度')!=-1||title.indexOf('云光字幕组')!=-1||title.indexOf('豌豆字幕组')!=-1||title.indexOf('DIGI-STUDIO')!=-1||title.indexOf('风之圣殿')!=-1||title.indexOf('华盟字幕社')!=-1||title.indexOf('波洛咖啡厅')!=-1||title.indexOf('PCSUB')!=-1||title.indexOf('Dymy')!=-1||title.indexOf('DHR')!=-1||title.indexOf('离谱Sub')!=-1||title.indexOf('爱咕字幕组')!=-1||title.indexOf('动漫国字幕组')!=-1||title.indexOf('幻樱字幕组')!=-1||title.indexOf('LoliHouse')!=-1||title.indexOf('喵萌')!=-1||title.indexOf('桜都字幕組')!=-1||title.indexOf('极影字幕社')!=-1)&&title.indexOf('+')==-1&&title.indexOf('季合集')==-1)){
+			await format(title, size, link, magnet, streams, episode)
+		}
+	})
+}
+
+async function format(title, size, link, magnet, streams, episode = -1) {
 	var temp = magnet.split('&tr=')
 	var b32 = temp[0].replace(/&dn=.*/g, '').replace(/magnet:\?xt=urn:btih:/g, '')
 	var temphash = base32.decode(b32)
@@ -77,51 +133,22 @@ async function format(title, size, link, magnet, streams) {
 		resolution += ' HDR'
 		sort_id -= 0.5
 	}
+	resolution = resolution.replace(/p/g, 'P')
 	var byte = await sizeToByte(size)
 	var stream = {
 		infoHash: infoHash,
+		fileIdx: episode === -1 ? null : episode - 1,
 		//trackers: trackers,
-		description: title + `\nSize:${size}`,
-		name: resolution,
+		description: title + '\n💾 ' + size,
+		name: `🌸 DMHY ${resolution}`,
 		sort_id: sort_id,
 		size: size,
-		byte: byte
+		byte: byte,
+		behaviorHints: {
+			bingeGroup: 'dmhy-' + resolution + '-' + size
+		}
 	}
 	streams.push(stream)
-}
-
-async function getName(id) {
-	var res = request('POST', `https://www.imdb.com/title/${id}/?ref_=nv_sr_srsg_0`)
-	var str = res.getBody('utf8')
-	var a = str.indexOf(`","name":"`) + 10
-	var b = str.indexOf('","image":"')
-	if (str.indexOf('alternateName') != -1) {
-		var c = str.indexOf('alternateName') - 3
-		title = str.substring(a, c)
-		title_ = str.substring(c + 19, b)
-	} else {
-		title = str.substring(a, b)
-		title_ = ''
-	}
-	if (title_ != '') {
-		title = title + '|' + title_
-	}
-	title = title.replace(/\s*/g, '').replace(/\:/g, '')
-	return title
-}
-
-async function getStreams(title, streams) {
-	var res = request('POST', `https://share.dmhy.org/topics/list?keyword=${title}&sort_id=2`)
-	var $ = cheerio.load(res.getBody('utf8'))
-	var items = $("tbody tr")
-	items.each(async function (idx) {
-		var str = $(this).children(".title").children("a").text()
-		var title = str.replace(/\n/g, '').replace(/\t/g, '')
-		var magnet = $(this).children("td").children(".download-arrow").attr('href')
-		var size = $(this).children("td").eq(4).text()
-		var link = $(this).children(".title").children("a").attr('href')
-		await format(title, size, link, magnet, streams)
-	})
 }
 
 async function sortBy(streams) {
