@@ -15,7 +15,7 @@ const manifest = {
 		"series"
 	],
 	"name": "动漫花园",
-	"description": "来自动漫花园的动画电影和番剧",
+	"description": "来自动漫花园的动漫电影和番剧",
 	"idPrefixes": [
 		"tt"
 	],
@@ -65,6 +65,9 @@ builder.defineStreamHandler(async ({ type, id, config }) => {
 
 async function getName(type, id, token) {
 	var res = request('GET', `https://www.myapifilms.com/tmdb/find?id=${id}&token=${token}&externalSource=imdb_id&format=json&language=zh`)
+	if (res.statusCode != 200) {
+		return ''
+	}
 	res = JSON.parse(res.getBody('utf8'))
 	if (type === 'movie') {
 		var title = res.data.movie_results[0] != undefined ? res.data.movie_results[0].title.replace(/\:/g, ' ').replace(/\：/g, ' ') : ''
@@ -89,6 +92,9 @@ async function getStreams(type, title, streams, season = -1, episode = -1) {
 		}
 	}
 	var res = request('POST', `https://share.dmhy.org/topics/list?keyword=${encodeURIComponent(title)}&sort_id=${sort_id}`)
+	if (res.statusCode != 200) {
+		return
+	}
 	var $ = cheerio.load(res.getBody('utf8'))
 	var items = $("tbody tr")
 	items.each(async function (idx) {
