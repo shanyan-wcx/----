@@ -1,6 +1,6 @@
 {
 	"name": "stremio-addon-dmhy",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "来自动漫花园的动画电影和番剧",
 	"scripts": {
 		"start": "node server.js"

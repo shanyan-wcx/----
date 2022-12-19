@@ -5,7 +5,7 @@ const { addonBuilder } = require("stremio-addon-sdk")
 
 const manifest = {
 	"id": "community.dmhy",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"catalogs": [],
 	"resources": [
 		"stream"
