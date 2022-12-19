@@ -91,7 +91,7 @@ async function getStreams(type, title, streams, season = -1, episode = -1) {
 			console.log(title)
 		}
 	}
-	var res = request('POST', `https://share.dmhy.org/topics/list?keyword=${encodeURIComponent(title)}&sort_id=${sort_id}`)
+	var res = request('GET', `https://share.dmhy.org/topics/list?keyword=${encodeURIComponent(title)}&sort_id=${sort_id}`)
 	if (res.statusCode != 200) {
 		return
 	}
